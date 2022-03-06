@@ -29,3 +29,6 @@ Both black bars and texts need to be cropped.
 This is a super basic script to aid with detinting sources that have had simple color corrections or level adjustments performed on them.
 
 For this to work properly, black bars must be cropped, and clip contents must match exactly. A low-pass filter is applied by default to help with noise-related fluctuations.
+
+### Contact
+- **IRC Channel**: `#OpusGang` on `irc.libera.chat`
