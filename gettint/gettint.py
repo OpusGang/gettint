@@ -82,7 +82,7 @@ def _709to601(c):
 def _truncate(c):
     c = depth(c, 10)
     c = c.std.Expr("x 2 +")
-    return depth(c, 8, dither_type="none")
+    return depth(c, 8)
 
 
 @rgb_adj
