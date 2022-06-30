@@ -24,11 +24,38 @@ When passing YUV video, autocrop is applied with standard ranges.
 RGB images must be cropped properly before passing to the script.
 Both black bars and texts need to be cropped.
 
+### Usage
+
+To run the script on two files that are identical apart from their tint:
+
+```sh
+python -m gettint path/to/tinted/file path/to/reference/file [--frame FRAME_NUMBER --force-matchcolors]
+```
+
+The `--frame` option is only relevant for videos.
+If you know you aren't dealing with one of the common errors listed above and would like to skip those, set `--force-matchcolors` (or `-m`).
+
 ## Match Colors
 
 This is a super basic script to aid with detinting sources that have had simple color corrections or level adjustments performed on them.
 
 For this to work properly, black bars must be cropped, and clip contents must match exactly. A low-pass filter is applied by default to help with noise-related fluctuations.
+
+### Usage
+
+To e.g. test for gain and offset in RGB in `my_script.py`:
+
+```py
+from gettint.matchcolors import matchcolors
+
+matchcolors(image, reference, params=["gain", "offset"], format=vs.RGB24)
+```
+
+Then run the script and look at the output as well as the graph found in `fig.pdf`:
+
+```sh
+python my_script.py
+```
 
 ### Contact
 - **IRC Channel**: `#OpusGang` on `irc.libera.chat`
