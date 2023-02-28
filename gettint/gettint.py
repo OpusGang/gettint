@@ -84,6 +84,13 @@ def _truncate(c):
     return depth(c, 8)
 
 
+@yuv_adj
+def _ceil(c):
+    c = depth(c, 10)
+    c = c.std.Expr("x 2 -")
+    return depth(c, 8)
+
+
 @rgb_adj
 def _offset_gain(c, gains, offsets):
     return c.std.Expr([f"x {gains[i]} * {offsets[i]} +" for i in range(c.format.num_planes)])
@@ -148,7 +155,8 @@ def gettint(src: str,
             "255->235"    : [_255to235, 1.5],
             "601->709"    : [_601to709, 0.5],
             "709->601"    : [_709to601, 0.5],
-            "truncate"    : [_truncate, 1]
+            "truncate"    : [_truncate, 1],
+            "ceil"    : [_ceil, 1]
             }
 
     backup_tests = {
