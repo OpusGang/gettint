@@ -170,6 +170,8 @@ def gettint(src: str,
     """
     clips = [core.lsmas.LWLibavSource(src), core.lsmas.LWLibavSource(ref)]
 
+    clips = [clip.std.RemoveFrameProps() for clip in clips]
+
     hcrop = 140 * 1080 / clips[0].width
     wcrop = 2 * hcrop
     for i in range(2):
