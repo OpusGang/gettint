@@ -1,5 +1,6 @@
 from .matchcolors import *
 import awsmfunc as awf
+import itertools
 
 # shitty decorators
 def yuv_adj(func):
@@ -34,6 +35,18 @@ def rgb_adj(func):
                 c = c.resize.Bicubic(format=vs.RGB24, filter_param_a=0.5, filter_param_b=0)
             else:
                 c = c.resize.Bicubic(format=vs.RGB24, matrix_s="709", filter_param_a=0.5, filter_param_b=0)
+        return func(c, *args[1:])
+    return inner
+
+
+def rgbs_adj(func):
+    def inner(*args):
+        c = args[0]
+        if c.format != vs.RGBS:
+            if c.format.color_family == vs.RGB:
+                c = c.resize.Bicubic(format=vs.RGBS, filter_param_a=0.5, filter_param_b=0)
+            else:
+                c = c.resize.Bicubic(format=vs.RGBS, matrix_s="709", filter_param_a=0.5, filter_param_b=0)
         return func(c, *args[1:])
     return inner
 
@@ -112,10 +125,40 @@ def _levels(c, levels):
     return join(c)
 
 
+@yuv_adj
+def _matrix(c, mat_in, mat_out):
+    try:
+        return c.resize.Bicubic(matrix_in_s=mat_in, matrix_s=mat_out)
+    except:
+        return c.fmtc.matrix(mats=mat_in, matd=mat_out)
+
+matrices = ["709", "fcc", "470bg", "240m", "ycgco"]
+
+
+@rgb_adj
+def _transfer(c, transfer_in, transfer_out):
+    try:
+        return c.resize.Bicubic(transfer_in_s=transfer_in, transfer_s=transfer_out)
+    except:
+        return c.fmtc.transfer(transs=transfer_in, transd=transfer_out)
+
+transfers = ["709", "470m", "470bg", "240", "linear", "pq", "428", "hlg", "1886", "sigmoid"]
+transfers_full = ["709", "470m", "470bg", "240", "linear", "log100", "log316", "61966-2-4", "1361", "61966-2-1", "pq", "428", "hlg", "1886", "1886a", "filmstream", "slog", "slog2", "slog3", "logc2", "logc3", "canonlog", "adobergb", "romm", "acescc", "acescct", "erimm", "vlog", "davinci", "log3g10", "redlog", "cineon", "panalog", "sigmoid"]
+
+
+@rgbs_adj
+def _primaries(c, primaries_in, primaries_out):
+    return c.fmtc.primaries(prims=primaries_in, primd=primaries_out)
+
+primaries = ["709", "ntsc", "ntscj", "pal", "240m", "filmc", "2020"]
+primaries_full = ["709", "ntsc", "ntscj", "pal", "240m", "filmc", "2020", "scrgb", "adobe98", "adobewide", "apple", "romm", "ciergb", "ciexyz", "p3dci", "p3d65", "p3d60", "p3p", "cinegam", "3213", "aces", "ap1", "sgamut", "sgamut3cine", "alexa", "vgamut", "p22", "fs", "davinci", "dragon", "dragon2", "red", "red2", "red3", "red4", "redwide"]
+
+
 def gettint(src: str,
             ref: str,
             frame: int = None,
-            force_matchcolors: bool = False):
+            force_matchcolors: bool = False,
+            mode: str = "standard"):
     """
     A script to automate finding the right detinting method.
 
@@ -123,6 +166,7 @@ def gettint(src: str,
     :param ref: Untinted reference.
     :param frame: Frame number.  Defaults to middle of clip.
     :param force_matchcolors: Force matchcolors script by bypassing common checks.
+    :param mode: "standard", "extended" or "full" - the checks to do.
     """
     clips = [core.lsmas.LWLibavSource(src), core.lsmas.LWLibavSource(ref)]
 
@@ -166,6 +210,41 @@ def gettint(src: str,
                 for vals in match_res[2]]),
             "levels"      : lambda c: _levels(c, match_res[3])
             }
+
+    def _extended_test(f, arr):
+        pairs = list(itertools.permutations(arr, 2))
+        lowest = float("inf")
+        rec = ""
+        for pair in pairs:
+            test = " -> ".join(pair)
+            result = _test_adj(lambda c: f(c, pair[0], pair[1]), clips[0], clips[1])
+            if result < lowest:
+                lowest = result
+                rec = test
+            elif result == lowest:
+                rec += ", " + test
+            print(f"{test} difference: {round(result, 3)}")
+        print(f"Lowest difference detected in {rec}.\n")
+        return
+
+    if mode == "extended":
+        print("Running extended tests.")
+        print("Testing transfers.")
+        _extended_test(_transfer, transfers)
+        print("Testing matrices.")
+        _extended_test(_matrix, matrices)
+        print("Testing primaries.")
+        _extended_test(_primaries, primaries)
+    elif mode == "full":
+        print("Running extended tests.")
+        print("Testing transfers.")
+        _extended_test(_transfer, transfers_full)
+        print("Testing matrices.")
+        _extended_test(_matrix, matrices_full)
+        print("Testing primaries.")
+        _extended_test(_primaries, primaries_full)
+    elif mode != "standard":
+        raise ValueError("Checking mode must be either standard, full, or extended.")
 
     if not force_matchcolors:
         # try to find the tint in common_tests
@@ -218,10 +297,11 @@ def main():
     parser.add_argument(dest="ref", type=str, help="Path to reference file")
     parser.add_argument("-f", "--frame", dest="frame", type=int, help="Frame number", required=False, default=None)
     parser.add_argument("-m", "--force-matchcolors", dest="force_matchcolors", help="Force matchcolors", action="store_true")
+    parser.add_argument("-c", "--checks", dest="mode", help="Checks to perform. Either standard, extended, or full", type=str, default="standard")
 
     args = parser.parse_args()
 
-    gettint(args.src, args.ref, args.frame, args.force_matchcolors)
+    gettint(args.src, args.ref, args.frame, args.force_matchcolors, args.mode.lower())
 
 if __name__ == "__main__":
     main()
