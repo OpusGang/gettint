@@ -179,7 +179,7 @@ def gettint(src: str,
     for i in range(2):
         if clips[i].format.color_family == vs.YUV:
             clips[i] = clips[i].acrop.AutoCrop(top=hcrop, bottom=hcrop, left=wcrop, right=wcrop)
-        clips[i] = clips[i].dfttest.DFTTest(tbsize=1)
+        clips[i] = core.std.Convolution(clips[i], matrix=[1,2,1,2,4,2,1,2,1])
     
     if frame is None:
         frame = round(len(clips[0]) / 2)
