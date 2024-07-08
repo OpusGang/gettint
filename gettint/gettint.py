@@ -129,10 +129,14 @@ def _levels(c, levels):
 def _matrix(c, mat_in, mat_out):
     try:
         return c.resize.Bicubic(matrix_in_s=mat_in, matrix_s=mat_out)
-    except:
-        return c.fmtc.matrix(mats=mat_in, matd=mat_out)
+    except Exception:
+        try:
+            return c.fmtc.matrix(mats=mat_in, matd=mat_out)
+        except Exception:
+            return c
 
 matrices = ["709", "fcc", "470bg", "240m", "ycgco"]
+matrices_full = ["601", "2020", "YCoCg", "RGB", "YDzDx", "709", "fcc", "470bg", "240m", "ycgco"]
 
 
 @rgb_adj
