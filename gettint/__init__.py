@@ -1,3 +1,1 @@
-__all__ = ["main", "gettint", "matchcolors"]
-
-from .matchcolors import matchcolors
+__all__ = ["main", "gettint", "meta"]
